@@ -1,5 +1,7 @@
 Attempts to get NixOS up on the PINE64 PineNote.
 
+[Stock PineNote Impressions (2022-01-02)](docs/initial-impressions.md)
+
 ## Credits
 
 This is mostly a restructuring of work many others have already done, and it wouldn't have been possible without them. Important parts of the Linux on PineNote experience include:
