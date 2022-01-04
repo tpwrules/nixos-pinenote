@@ -1,0 +1,13 @@
+diff --git a/main.cpp b/main.cpp
+index 029f0e2..8cd3340 100644
+--- a/main.cpp
++++ b/main.cpp
+@@ -27,7 +27,7 @@ uint8_t gBuf[MAX_MERGE_SIZE];
+ extern const char *szManufName[];
+ CRKLog *g_pLogObject = nullptr;
+ CONFIG_ITEM_VECTOR g_ConfigItemVec;
+-#define DEFAULT_RW_LBA 128
++#define DEFAULT_RW_LBA 512
+ #define CURSOR_MOVEUP_LINE(n) printf("%c[%dA", 0x1B, n)
+ #define CURSOR_DEL_LINE printf("%c[2K", 0x1B)
+ 

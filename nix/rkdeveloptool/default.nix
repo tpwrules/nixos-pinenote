@@ -20,6 +20,8 @@
   patches = [
     # fix length wrapping when reading data amounts over 4GiB
     ./0001-fix-large-dumps.patch
+    # transfer more sectors at a time to double the transfer spede
+    ./0001-speed-up-xfer.patch
   ];
 
   nativeBuildInputs = [ cmake meson pkg-config scdoc ];
