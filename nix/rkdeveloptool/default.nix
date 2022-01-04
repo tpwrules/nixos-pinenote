@@ -17,6 +17,11 @@
     hash = "sha256-P6wEUhyVsM1eolkYPvjRUXGOytsh8dUt889TWkUqCVo=";
   };
 
+  patches = [
+    # fix length wrapping when reading data amounts over 4GiB
+    ./0001-fix-large-dumps.patch
+  ];
+
   nativeBuildInputs = [ cmake meson pkg-config scdoc ];
 
   buildInputs = [ libusb1 ];
