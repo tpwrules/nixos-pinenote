@@ -1,0 +1,80 @@
+First step is to back up the pinenote.
+
+Install Nix on your favorite x86_64 linux distro:
+https://nixos.org/download.html#nix-quick-install
+
+Clone this repo:
+git clone https://github.com/tpwrules/nixos-pinenote
+cd nixos-pinenote
+
+Build rkdeveloptool:
+nix-build -A rkdeveloptool -o rkdeveloptool
+
+Install rkdeveloptool's udev rules:
+sudo cp rkdeveloptool/lib/udev/rules.d/99-rk-rockusb.rules /etc/udev/rules.d/
+
+Put your PineNote into loader mode by first fully turning it off and
+disconnecting the USB cable. In Android, hold the power button, then
+select "Shut down" from the dialog. Completing power off will take 20 or 30
+seconds past the time it prints "Power off" on the screen.
+
+Flip it over, then place the pen to activate the debug switch:
+https://github.com/DorianRudolph/pinenotes/blob/main/static/download_mode.jpg?raw=true
+
+Do not press the power switch, but simply plug the USB cable in. If the pen is
+in the right place, the PineNote will show up in `lsusb` as VID:PID 2207:350a.
+Mine does not show a name, though for some it will allegedly show "Fuzhou
+Rockchip Electronics Company".
+
+Make sure it's in loader mode by querying using rkdeveloptool:
+rkdeveloptool/bin/rkdeveloptool list
+
+should print: DevNo=1 Vid=0x2207,Pid=0x350a,LocationID=102    Loader
+
+If it's in Maskrom mode, you will have to turn it back off (hold the power
+button until it disappears from `lsusb`), then redo the instructions to enter
+loader mode.
+
+Get the patched U-Boot which can read the whole disk here:
+https://github.com/DorianRudolph/pinenotes/blob/main/static/uboot_patched.img?raw=true
+
+Back up the existing U-Boot and flash the patched one:
+rkdeveloptool/bin/rkdeveloptool read-partition uboot uboot.img
+rkdeveloptool/bin/rkdeveloptool write-partition uboot uboot_patched.img
+
+NOTE: if you receive an error along the lines of "creating comm object failed!",
+this indicates a permissions problem with the USB device. Ensure you installed
+the udev rules correctly.
+
+Reboot the PineNote and re-enter loader mode to use the new U-Boot.
+
+Back up the data before the first partition, including the partition table:
+rkdeveloptool/bin/rkdeveloptool read 0 8388608 diskheader.img
+
+Back up the rest of the partitions:
+parts=$(rkdeveloptool/bin/rkdeveloptool list-partitions | grep -vE '(LBA|userdata|uboot)' | sed s/' \+'/' '/g | cut -f5 -d' ')
+for part in $parts; do echo $part; rkdeveloptool/bin/rkdeveloptool read-partition $part $part.img; done
+
+If you like, back up the userdata partition. BEWARE that you need 120GB free
+disk space and 80 free minutes of time:
+rkdeveloptool/bin/rkdeveloptool read-partition userdata userdata.img
+
+The SHA-256 hashes of my partitions (bearing in mind I've used my device for a
+week or so):
+3201548f7070f0ae5adf2c869b15df99b5f85ca51feda443c1597c130976619a  backup.img
+d60f4054edb91259fb4471eb5f0ba53803b9a7e2300c3647e11f7b71aa95a003  boot.img
+23225246f62f585ee6d8bb94c145745e53e1f889d9cbb6fec6970f13df8e0c87  cache.img
+a69b4326c207b85ea73f84af8ffeaaf5d58ab76899672855c810be2d4efe36d8  device.img
+d8fa6157a47ac0a5540efece13fece68ecb923b132bfcc95d78a57ee4232798e  diskheader.img
+8ae3e7439f8e2812c407f59621c4828abad7169fbc133f7cc09362c2c00f745e  dtbo.img
+d3ac785c23728d148f158d8c885b73d439b048a697d38d15e913d7cb681ffae4  logo.img
+d3fa33a696be73d4fd97a03c24dcf8c563a700371595cc3453436afca5582400  metadata.img
+412844470407577eba25c5e67924586aba124fd796d2599a26fa45662d74b3e0  misc.img
+be3baeaaf25705737477778902b63a1bc0af23bcb2c82aa07f522dfedd554659  recovery.img
+a31a927b37f227dddb4310fe5e4f125357f8163d6adc24cdb03b4b80c29f8e98  security.img
+846d5a72e2cce89a36dc360958924583a7d181e40578cec6e730922d339edcb0  super.img
+3026c9fa3590a1a2f032e2fbdec64f76a74e86d69e6bf553085e00aa95f4945d  trust.img
+45ea1e0c46fb44cab1d99b7bb947075329b4af25d6b7fd17c577e02ad413e24d  uboot.img
+a1be0e882fde00c32557a13506472acd25c1c00285c3da307176d1a864f5edc4  userdata.img
+057f1a73ec35f9d1612f6894f881f8d10518a1d17d5898b8022cfdf1d1deb5bc  vbmeta.img
+987c3ce11b0ce17db6da2bce492bcc147c4473c252b5fff43a5048062b7b8939  waveform.img
