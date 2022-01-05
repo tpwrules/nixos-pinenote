@@ -1,0 +1,60 @@
+Today's goal is to shrink the userdata partition without loss of data.
+
+Unfortunately, I had a devil of a time mounting the f2fs partition because it
+seems it's not really compatible between kernel versions. Fortunately I was
+able to make a NixOS VM with a close enough version that it's at least
+mountable.
+
+Build and start the VM. Be sure to use `sudo` to get HW acceleration.
+nix-build -A f2fs-vm
+rm -f nixos.qcow2; sudo result/bin/run-nixos-vm
+
+It will start and mount the host /home under /mnt/home.
+
+Now, in the VM, log in as root with a blank password, and:
+cd /mnt/home/<your username>/dir/with/userdata.img
+
+Create a new smaller partition. I chose 5GiB in order to test downloading larger
+partitions with rkdeveloptool, yet not take forever to do it:
+dd if=/dev/zero of=userdata_small.img bs=1M count=5120
+mkfs.f2fs userdata_small.img
+
+Mount the old and new partitions:
+mkdir -p uold unew
+mount -t f2fs -o ro userdata.img uold
+mount -t f2fs userdata_small.img unew
+
+Back up the partition data:
+tar czf userdata.tar.gz -C uold .
+
+Copy the data from the old to the new:
+rsync -a --progress uold unew
+
+Unmount the partitions and shut down the VM:
+umount uold
+umount unew
+rm -r uold unew
+poweroff
+
+Get rid of the VM data:
+rm nixos.qcow2 result
+
+Back up the first 5GiB of the partition so we can restore it to how it was:
+rkdeveloptool/bin/rkdeveloptool read 9861120 5368709120 ud_hdr.img
+
+Write the new small userdata partition:
+rkdeveloptool/bin/rkdeveloptool write-partition userdata userdata_small.img
+
+It just seems to boot forever the first time. Reboot it, and all my files are
+gone. Let's try to put them back:
+rkdeveloptool/bin/rkdeveloptool write-partition userdata ud_hdr.img
+
+And now everything is back to how it was. Well that is good to know that
+restoration is possible, but sad that I couldn't get it to work. I also tried
+downloading an ext4 formatted image but that just caused some system process to
+crash repeadly and it never completed boot either.
+
+Samueldr says maybe fastboot can do it, so that's something else to look into.
+But if fastboot can just format as ext4, then meh I'll do it from nixos. Also
+maybe it can do file transfers, but I've figured that out for now too. Ah well,
+ideas await!
